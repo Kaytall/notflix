@@ -1,6 +1,24 @@
 #!/bin/sh
 
-query=$(printf '%s' "$*" | tr ' ' '+' )
-movie=$(curl -s https://1337x.to/search/$query/1/ | grep -Eo "torrent\/[0-9]{7}\/[a-zA-Z0-9?%-]*/" | head -n 1)
-magnet=$(curl -s https://1337x.to/$movie | grep -Po "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)
-peerflix -l -k $magnet
+menu="fzf"
+echo "Movie: "
+read name
+echo "Please Select BaseURL"
+
+echo "1.1337x"
+echo "2.LimeTorrents"
+
+read option
+
+case $option in
+    1)baseurl="https://1337x.to"
+      query="$(echo $name | tr " " "+" )"
+      movie="$(curl -s $baseurl/search/$query/1/ | grep -Eo "torrent\/[0-9]{7}\/[a-zA-Z0-9?%-]*/" | $menu)";;
+    2)baseurl="https://limetorrents.unblockit.vegas"
+      query="$(echo $name | tr " " "-" )"
+      movie="$(curl -s "$baseurl/search/all/$query/" | grep -Eo "torrent\/[0-9]{7}\/[a-zA-Z0-9?%-]*/" | $menu)";;
+
+esac
+
+magnet="$(curl -s $baseurl/$movie | grep -Po "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)"
+webtorrent "$magnet" --mpv
