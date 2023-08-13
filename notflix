@@ -13,12 +13,13 @@ read option
 case $option in
     1)baseurl="https://1337x.to"
       query="$(echo $name | tr " " "+" )"
-      movie="$(curl -s $baseurl/search/$query/1/ | grep -Eo "torrent\/[0-9]{7}\/[a-zA-Z0-9?%-]*/" | $menu)";;
+      movie="$(curl -s $baseurl/search/$query/1/ | grep -Eo "torrent\/[0-9]{7}\/[a-zA-Z0-9?%-]*/" | $menu)"
+      magnet="$(curl -s $baseurl/$movie | grep -Po "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)";;
     2)baseurl="https://limetorrents.unblockit.vegas"
       query="$(echo $name | tr " " "-" )"
-      movie="$(curl -s "$baseurl/search/all/$query/" | grep -Eo "torrent\/[0-9]{7}\/[a-zA-Z0-9?%-]*/" | $menu)";;
+      movie="$(curl -s "$baseurl/search/all/$query/" | grep -Eo "http://itorrents.org/torrent/[A-Z0-9]*.torrent\?title=[a-zA-Z0-9?%--]*" | sed s#?#--\># | $menu)"
+      magnet="$(echo $movie | grep -Eo "http://itorrents.org/torrent/[A-Z0-9]*.torrent")";;
 
 esac
 
-magnet="$(curl -s $baseurl/$movie | grep -Po "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)"
 webtorrent "$magnet" --mpv
