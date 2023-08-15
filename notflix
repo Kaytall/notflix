@@ -1,25 +1,64 @@
 #!/bin/sh
 
-menu="fzf"
-echo "Movie: "
-read name
-echo "Please Select BaseURL"
 
-echo "1.1337x"
-echo "2.LimeTorrents"
+if [ -t 1 ] ; then
+    menu="fzf"
+    echo "Movie:"
+    read name
+    echo "Please Select BaseURL"
+    echo "1.1337x"
+    echo "2.LimeTorrents"
+    echo "3.torrentgalaxy"
+    echo "4.yts"
+    read option
 
-read option
+else
+    menu="rofi -dmenu "
+    name="$(rofi -dmenu -i -p Movie: )"
+    option="$(echo "1
+2
+3
+4" | rofi -dmenu -p "Please Select BaseURL
+1.1337x
+2.limetorrents
+3.torrentgalaxy
+4.yts")"
+    
+fi
 
 case $option in
     1)baseurl="https://1337x.to"
       query="$(echo $name | tr " " "+" )"
       movie="$(curl -s $baseurl/search/$query/1/ | grep -Eo "torrent\/[0-9]{7}\/[a-zA-Z0-9?%-]*/" | $menu)"
-      magnet="$(curl -s $baseurl/$movie | grep -Po "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)";;
-    2)baseurl="https://limetorrents.unblockit.vegas"
+      [ -z "$movie" ] && notify "Exiting" "No Results found for \"$(echo $query | tr "+" " ")\"" && exit
+      magnet="$(curl -s $baseurl/$movie | grep -Eo "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)";;
+    2)baseurl="https://www.limetorrents.to"
       query="$(echo $name | tr " " "-" )"
       movie="$(curl -s "$baseurl/search/all/$query/" | grep -Eo "http://itorrents.org/torrent/[A-Z0-9]*.torrent\?title=[a-zA-Z0-9?%--]*" | sed s#?#--\># | $menu)"
+      [ -z "$movie" ] && notify-send "Exiting" "No Results found for \"$(echo $query | tr "+" " ")\"" && exit
       magnet="$(echo $movie | grep -Eo "http://itorrents.org/torrent/[A-Z0-9]*.torrent")";;
+    3)baseurl="https://torrentgalaxy.mx"
+      query="$(echo $name | tr " " "+")"
+      movie="$(curl -s "$baseurl/torrents.php?search=$query#results" | grep -Eo "torrent/[0-9]{7}[a-zA-Z0-9?%-]*/[A-Za-z0-9?%.-]*" | $menu )"
+      [ -z "$movie" ] && notify-send "Exiting" "No Results found for \"$(echo $query | tr "+" " ")\"" && exit
+      magnet="$(curl -s $baseurl/$movie | grep -Eo "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)";;
+    4)baseurl="https://yts.mx"
+      query="$(echo $name | tr " " "%")"
+      movie="$(curl -s "$baseurl/browse-movies/$query/all/all/0/latest/0/all" | grep -Eo "https://yts.mx/movies/[a-z0-9-]*" | $menu)"
+      [ -z "$movie" ] && notify-send "Exiting" "No Results found for \"$(echo $query | tr "+" " ")\"" && exit
+      magnet="$(curl -s $movie | grep -Eo "https://yts.mx/torrent/download/[0-9A-Z]*" | $menu)";;
+    
+    
+    
 
 esac
 
-webtorrent "$magnet" --mpv
+option="$(echo "Stream
+Download" | rofi -dmenu -p Option)"
+
+if [ "$option" = "Download" ]; then
+    qbittorrent "$magnet"
+
+else
+    webtorrent "$magnet" --mpv
+fi
