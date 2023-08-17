@@ -32,7 +32,7 @@ case $option in
       movie="$(curl -s $baseurl/search/$query/1/ | grep -Eo "torrent\/[0-9]{7}\/[a-zA-Z0-9?%-]*/" | $menu)"
       [ -z "$movie" ] && notify "Exiting" "No Results found for \"$(echo $query | tr "+" " ")\"" && exit
       magnet="$(curl -s $baseurl/$movie | grep -Eo "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)";;
-    2)baseurl="https://www.limetorrents.to"
+ 2)baseurl="https://www.limetorrents.to"
       query="$(echo $name | tr " " "-" )"
       movie="$(curl -s "$baseurl/search/all/$query/" | grep -Eo "http://itorrents.org/torrent/[A-Z0-9]*.torrent\?title=[a-zA-Z0-9?%--]*" | sed s#?#--\># | $menu)"
       [ -z "$movie" ] && notify-send "Exiting" "No Results found for \"$(echo $query | tr "+" " ")\"" && exit
@@ -43,10 +43,13 @@ case $option in
       [ -z "$movie" ] && notify-send "Exiting" "No Results found for \"$(echo $query | tr "+" " ")\"" && exit
       magnet="$(curl -s $baseurl/$movie | grep -Eo "magnet:\?xt=urn:btih:[a-zA-Z0-9]*" | head -n 1)";;
     4)baseurl="https://yts.mx"
-      query="$(echo $name | tr " " "%")"
+      query="$(echo $name | sed "s/ /%20/g")"
       movie="$(curl -s "$baseurl/browse-movies/$query/all/all/0/latest/0/all" | grep -Eo "https://yts.mx/movies/[a-z0-9-]*" | $menu)"
       [ -z "$movie" ] && notify-send "Exiting" "No Results found for \"$(echo $query | tr "+" " ")\"" && exit
-      magnet="$(curl -s $movie | grep -Eo "https://yts.mx/torrent/download/[0-9A-Z]*" | $menu)";;
+      magnet="$(curl -s $movie)"
+      link="$(echo $magnet | grep -Eo "href=\"https://yts.mx/torrent/download/[0-9A-Z]*\" rel=\"nofollow\" title=\"Download [ a-zA-Z:0-9]*Torrent" | sed "s#rel=\"nofollow\"\ title=\"##" | sed "s#href=\"##" | $menu)"
+      chosen="$(echo $link | grep -Eo "https://yts.mx/torrent/download/[0-9A-Z]*")";;
+      
     
     
     
@@ -57,8 +60,8 @@ option="$(echo "Stream
 Download" | rofi -dmenu -p Option)"
 
 if [ "$option" = "Download" ]; then
-    qbittorrent "$magnet"
+    qbittorrent "$chosen"
 
 else
-    webtorrent "$magnet" --mpv
+    webtorrent "$chosen" --mpv
 fi
